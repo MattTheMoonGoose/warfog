@@ -8,84 +8,39 @@
             }
             #mask {
                 opacity: 0.5;
+                position:absolute;
+                z-index: 10;
+            }
+            #image {
+                position:absolute;
+            }
+            div.controls {
+                position: relative;
+                top: 600px;
+                display: flex;
+                max-height: 50px;
+                max-width: 800px;
+                width: 800px;
+            }
+            button {
+                flex: 1;
+                border-radius: 10px;
+                background-color: darkseagreen;
+            }
+            button.reveal {
+                background-color: lightcoral;
             }
         </style>
-        <script type="text/javascript">
-            var canvas, ctx, flag = false,
-                prevX = 0,
-                currX = 0,
-                prevY = 0,
-                currY = 0,
-                dot_flag = false;
-        
-            var colour = "black",
-                lineThickness = 10;
-            
-            function init() {
-                canvas = document.getElementById('mask');
-                ctx = canvas.getContext("2d");
-                w = canvas.width;
-                h = canvas.height;
-
-                canvas.addEventListener("mousemove", function (e) {
-                    findxy('move', e)
-                }, false);
-                canvas.addEventListener("mousedown", function (e) {
-                    findxy('down', e)
-                }, false);
-                canvas.addEventListener("mouseup", function (e) {
-                    findxy('up', e)
-                }, false);
-                canvas.addEventListener("mouseout", function (e) {
-                    findxy('out', e)
-                }, false);
-            }
-
-            function findxy(res, e) {
-                if (res == 'down') {
-                    prevX = currX;
-                    prevY = currY;
-                    currX = e.clientX - canvas.offsetLeft;
-                    currY = e.clientY - canvas.offsetTop;
-
-                    flag = true;
-                    dot_flag = true;
-                    if (dot_flag) {
-                        ctx.beginPath();
-                        ctx.fillStyle = x;
-                        ctx.fillRect(currX, currY, 2, 2);
-                        ctx.closePath();
-                        dot_flag = false;
-                    }
-                }
-                if (res == 'up' || res == "out") {
-                    flag = false;
-                }
-                if (res == 'move') {
-                    if (flag) {
-                        prevX = currX;
-                        prevY = currY;
-                        currX = e.clientX - canvas.offsetLeft;
-                        currY = e.clientY - canvas.offsetTop;
-                        draw();
-                    }
-                }
-            }
-            function draw() {
-                ctx.beginPath();
-                ctx.moveTo(prevX, prevY);
-                ctx.lineTo(currX, currY);
-                ctx.strokeStyle = colour;
-                ctx.lineWidth = lineThickness;
-                ctx.stroke();
-                ctx.closePath();
-            }
-        </script>
+        <script type="text/javascript" src="app.js"></script>
     </head>
     <body onload="init()">
         <div class="mask-container">
-            <canvas id="mask" width="" height=""></canvas>
-            <image src="/image" />
+            <canvas id="mask" width="800" height="600"></canvas>
+            <image id="image" src="/image" width="800" height="600"/>
+        </div>
+        <div class="controls">
+            <button onclick="reset()">Reset</button>
+            <button class="reveal" onclick="reveal()">Reveal</button>  
         </div>
     </body>
 </html>

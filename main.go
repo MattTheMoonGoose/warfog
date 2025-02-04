@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"image"
 	"image/color"
 	_ "image/jpeg"
 	"image/png"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -20,10 +22,10 @@ type Params struct {
 func main() {
 	params := ParseParameters()
 	imageConfig := LoadImage(params.ImagePath)
-	imageMask := CreateImageMask(*imageConfig)
+	// imageMask := CreateImageMask(*imageConfig)
 	s := Server{
 		ImageConfig: imageConfig,
-		ImageMask:   imageMask,
+		ImageMask:   nil,
 		Port:        params.Port,
 	}
 	InitServer(s)
@@ -95,7 +97,7 @@ func CreateImageMask(ic ImageConfig) *image.Alpha {
 
 type Server struct {
 	ImageConfig *ImageConfig
-	ImageMask   *image.Alpha
+	ImageMask   *image.Image
 	Port        int
 }
 
@@ -120,18 +122,60 @@ func (s *Server) ImageHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(s.ImageConfig.ImageData)
 }
 
+// Handle mask retrieval and updates
 func (s *Server) MaskHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		s.GetMask(w, r)
+	} else if r.Method == http.MethodPut {
+		s.UpdateMask(w, r)
+	}
+}
+func (s *Server) GetMask(w http.ResponseWriter, r *http.Request) {
+	// Open the mask file
+	f, err := os.Open(fmt.Sprintf("mask.%s.png", s.ImageConfig.Path))
+	if err != nil {
+		log.Println("can't open mask file, ", err)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	defer f.Close()
+	// Decode the mask file into an Image
+	i, _, err := image.Decode(f)
+	if err != nil {
+		log.Println("can't decode mask file, ", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	// Encode the Image into a byte array
+	// var image []byte
+	w.Header().Set("Content-Type", "image/png")
+	// w.Write(image)
+	png.Encode(w, i)
+}
+
+func (s *Server) UpdateMask(w http.ResponseWriter, r *http.Request) {
+	maskBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Println("could not read mask bytes, ", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	mask, err := png.Decode(bytes.NewReader(maskBytes))
+	if err != nil {
+		log.Println("could not decode mask, ", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	s.ImageMask = &mask
+
 	f, err := os.Create(fmt.Sprintf("mask.%s.png", s.ImageConfig.Path))
 	if err != nil {
 		log.Println("can't create mask file, ", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 	defer f.Close()
-	png.Encode(f, s.ImageMask)
-	var image []byte
-	_, err = f.Read(image)
-	if err != nil {
-		log.Println("can't read created mask, ", err)
-	}
-	w.Header().Set("Content-Type", "image/png")
-	w.Write(image)
+	png.Encode(f, *s.ImageMask)
+
+	w.WriteHeader(http.StatusOK)
 }

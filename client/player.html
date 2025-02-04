@@ -1,0 +1,33 @@
+<html>
+    <head>
+        <style>
+            body {
+                width: 100%;
+                height: 100%;
+                display: flex;
+            }
+            #mask {
+                position:absolute;
+                z-index: 10;
+            }
+            #image {
+                position:absolute;
+            }
+        </style>
+        <script type="text/javascript">
+            setInterval(() => {
+                document.getElementById('mask').src = '/mask?' + new Date().getTime();
+            }, 3000);
+
+            function maskLoaded() {
+                document.getElementById('image').style.visibility = 'visible';
+            }
+        </script>
+    </head>
+    <body>
+        <div class="mask-container">
+            <image id="mask" src="/mask?0" width="800" height="600" onload="maskLoaded()"/>
+            <image id="image" src="/image?0" width="800" height="600" style="visibility: hidden;"/>
+        </div>
+    </body>
+</html>
